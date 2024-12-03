@@ -1,4 +1,4 @@
-module github.com/prometheus-operator/prometheus-operator
+module github.com/alileza/prometheus-operator
 
 go 1.16
 
