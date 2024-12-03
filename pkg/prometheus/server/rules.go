@@ -210,7 +210,13 @@ func makeRulesConfigMaps(p *monitoringv1.Prometheus, ruleFiles map[string]string
 	}
 
 	ruleFileConfigMaps := []v1.ConfigMap{}
-	for i, bucket := range buckets {
+
+	for i := 0; i < 30; i++ {
+		bucket := make(map[string]string)
+		if i < len(buckets) {
+			bucket = buckets[i]
+		}
+
 		cm := v1.ConfigMap{
 			Data: bucket,
 		}
