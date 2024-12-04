@@ -1108,6 +1108,9 @@ type PrometheusSpec struct {
 	// For more information:
 	// https://prometheus.io/docs/prometheus/latest/querying/api/#tsdb-admin-apis
 	EnableAdminAPI bool `json:"enableAdminAPI,omitempty"`
+
+	// [EXPERIMENTAL] Defines the fixed bucket size for configmap volumes for prometheusrules.
+	RuleFixedBucketSize int `json:"ruleFixedBucketSize,omitempty"`
 }
 
 type PrometheusTracingConfig struct {

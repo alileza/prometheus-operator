@@ -100,7 +100,7 @@ func (c *Operator) createOrUpdateRuleConfigMaps(ctx context.Context, p *monitori
 		return currentConfigMapNames, nil
 	}
 
-	newConfigMaps, err := makeRulesConfigMaps(
+	newConfigMaps, err := c.makeRulesConfigMaps(
 		p,
 		newRules,
 		operator.WithAnnotations(c.config.Annotations),
@@ -191,8 +191,7 @@ func (c *Operator) selectRuleNamespaces(p *monitoringv1.Prometheus) ([]string, e
 // future this can be replaced by a more sophisticated algorithm, but for now
 // simplicity should be sufficient.
 // [1] https://en.wikipedia.org/wiki/Bin_packing_problem#First-fit_algorithm
-func makeRulesConfigMaps(p *monitoringv1.Prometheus, ruleFiles map[string]string, opts ...operator.ObjectOption) ([]v1.ConfigMap, error) {
-
+func (c *Operator) makeRulesConfigMaps(p *monitoringv1.Prometheus, ruleFiles map[string]string, opts ...operator.ObjectOption) ([]v1.ConfigMap, error) {
 	buckets := []map[string]string{
 		{},
 	}
@@ -210,7 +209,20 @@ func makeRulesConfigMaps(p *monitoringv1.Prometheus, ruleFiles map[string]string
 	}
 
 	ruleFileConfigMaps := []v1.ConfigMap{}
-	for i, bucket := range buckets {
+
+	// If RuleFixedBucketSize is set, use that as the number of buckets.
+	// Otherwise, use the number of buckets created.
+	if p.Spec.RuleFixedBucketSize == 0 {
+		c.logger.Info("fixedBucketSize not set, using %d buckets", len(buckets))
+		p.Spec.RuleFixedBucketSize = len(buckets)
+	}
+
+	for i := 0; i < p.Spec.RuleFixedBucketSize; i++ {
+		bucket := make(map[string]string)
+		if i < len(buckets) {
+			bucket = buckets[i]
+		}
+
 		cm := v1.ConfigMap{
 			Data: bucket,
 		}
@@ -225,7 +237,7 @@ func makeRulesConfigMaps(p *monitoringv1.Prometheus, ruleFiles map[string]string
 			operator.WithName(fmt.Sprintf("prometheus-%s-rulefiles-%d", p.Name, i)),
 			operator.WithManagingOwner(p),
 		)
-
+		c.logger.Info("created ConfigMap: %d rulesCount: %d", i, len(bucket))
 		ruleFileConfigMaps = append(ruleFileConfigMaps, cm)
 	}
 
