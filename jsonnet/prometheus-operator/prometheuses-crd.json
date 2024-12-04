@@ -6692,6 +6692,11 @@
                     "description": "The route prefix Prometheus registers HTTP handlers for.\n\nThis is useful when using `spec.externalURL`, and a proxy is rewriting\nHTTP routes of a request, and the actual ExternalURL is still true, but\nthe server serves requests under a different route prefix. For example\nfor use with `kubectl proxy`.",
                     "type": "string"
                   },
+                  "ruleFixedConfigMapSize": {
+                    "description": "Defines the size of the fixed size PrometheusRule configMap.",
+                    "format": "int32",
+                    "type": "integer"
+                  },
                   "ruleNamespaceSelector": {
                     "description": "Namespaces to match for PrometheusRule discovery. An empty label selector\nmatches all namespaces. A null label selector matches the current\nnamespace only.",
                     "properties": {

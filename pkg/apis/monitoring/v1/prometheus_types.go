@@ -1054,7 +1054,7 @@ type PrometheusSpec struct {
 	EnableAdminAPI bool `json:"enableAdminAPI,omitempty"`
 
 	// [EXPERIMENTAL] Defines the fixed bucket size for configmap volumes for prometheusrules.
-	RuleFixedBucketSize int `json:"ruleFixedBucketSize,omitempty"`
+	RuleFixedConfigMapSize int `json:"ruleFixedConfigMapSize,omitempty"`
 }
 
 type PrometheusTracingConfig struct {

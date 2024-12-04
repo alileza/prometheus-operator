@@ -210,14 +210,14 @@ func (c *Operator) makeRulesConfigMaps(p *monitoringv1.Prometheus, ruleFiles map
 
 	ruleFileConfigMaps := []v1.ConfigMap{}
 
-	// If RuleFixedBucketSize is set, use that as the number of buckets.
+	// If RuleFixedConfigMapSize is set, use that as the number of buckets.
 	// Otherwise, use the number of buckets created.
-	if p.Spec.RuleFixedBucketSize == 0 {
-		c.logger.Info("fixedBucketSize not set, using %d buckets", len(buckets))
-		p.Spec.RuleFixedBucketSize = len(buckets)
+	if p.Spec.RuleFixedConfigMapSize == 0 {
+		c.logger.Info("RuleFixedConfigMapSize not set, using %d configMap size", len(buckets))
+		p.Spec.RuleFixedConfigMapSize = len(buckets)
 	}
 
-	for i := 0; i < p.Spec.RuleFixedBucketSize; i++ {
+	for i := 0; i < p.Spec.RuleFixedConfigMapSize; i++ {
 		bucket := make(map[string]string)
 		if i < len(buckets) {
 			bucket = buckets[i]
