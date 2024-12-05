@@ -21,6 +21,7 @@ import (
 	"strings"
 
 	v1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/prometheus-operator/prometheus-operator/internal/util"
@@ -132,7 +133,8 @@ func (c *Operator) createOrUpdateRuleConfigMaps(ctx context.Context, p *monitori
 	// Simply deleting old ConfigMaps and creating new ones for now. Could be
 	// replaced by logic that only deletes obsolete ConfigMaps in the future.
 	for _, cm := range currentConfigMaps {
-		err := cClient.Delete(ctx, cm.Name, metav1.DeleteOptions{})
+		cm.Data = make(map[string]string)
+		_, err := cClient.Update(ctx, &cm, metav1.UpdateOptions{})
 		if err != nil {
 			return nil, fmt.Errorf("failed to delete current ConfigMap '%v': %w", cm.Name, err)
 		}
@@ -143,9 +145,20 @@ func (c *Operator) createOrUpdateRuleConfigMaps(ctx context.Context, p *monitori
 		"prometheus", p.Name,
 	)
 	for _, cm := range newConfigMaps {
-		_, err = cClient.Create(ctx, &cm, metav1.CreateOptions{})
-		if err != nil {
-			return nil, fmt.Errorf("failed to create new ConfigMap '%v': %w", cm.Name, err)
+		existingCM, err := cClient.Get(ctx, cm.Name, metav1.GetOptions{})
+		if apierrors.IsNotFound(err) {
+			_, err = cClient.Create(ctx, &cm, metav1.CreateOptions{})
+			if err != nil {
+				return nil, fmt.Errorf("failed to create ConfigMap '%v': %w", cm.Name, err)
+			}
+		} else if err == nil {
+			cm.ResourceVersion = existingCM.ResourceVersion // Set resource version to update
+			_, err = cClient.Update(ctx, &cm, metav1.UpdateOptions{})
+			if err != nil {
+				return nil, fmt.Errorf("failed to update ConfigMap '%v': %w", cm.Name, err)
+			}
+		} else {
+			return nil, fmt.Errorf("failed to get ConfigMap '%v': %w", cm.Name, err)
 		}
 	}
 
