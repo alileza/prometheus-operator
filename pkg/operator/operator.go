@@ -199,6 +199,7 @@ type Metrics struct {
 	watchCounter           prometheus.Counter
 	watchFailedCounter     prometheus.Counter
 	stsDeleteCreateCounter prometheus.Counter
+	activeRuleConfigMap    *prometheus.GaugeVec
 	// triggerByCounter is a set of counters keeping track of the amount
 	// of times Prometheus Operator was triggered to reconcile its created
 	// objects. It is split in the dimensions of Kubernetes objects and
@@ -229,6 +230,10 @@ func NewMetrics(r prometheus.Registerer) *Metrics {
 			Name: "prometheus_operator_reconcile_sts_delete_create_total",
 			Help: "Number of times that reconciling a statefulset required deleting and re-creating it",
 		}),
+		activeRuleConfigMap: prometheus.NewGaugeVec(prometheus.GaugeOpts{
+			Name: "prometheus_operator_active_rules_configmaps",
+			Help: "Number of active PrometheusRule ConfigMaps",
+		}, []string{"name"}),
 		listCounter: prometheus.NewCounter(prometheus.CounterOpts{
 			Name: "prometheus_operator_list_operations_total",
 			Help: "Total number of list operations",
@@ -260,6 +265,7 @@ func NewMetrics(r prometheus.Registerer) *Metrics {
 		m.listFailedCounter,
 		m.watchCounter,
 		m.watchFailedCounter,
+		m.activeRuleConfigMap,
 		m.ready,
 		&m,
 	)
@@ -456,4 +462,9 @@ func WaitForNamedCacheSync(ctx context.Context, controllerName string, logger *s
 	}
 
 	return ok
+}
+
+// SetActiveRulesConfigMaps sets the number of active ConfigMaps for prometheus.
+func (m *Metrics) SetActiveRulesConfigMaps(name string, v int) {
+	m.activeRuleConfigMap.WithLabelValues(name).Set(float64(v))
 }

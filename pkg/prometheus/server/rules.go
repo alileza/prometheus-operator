@@ -132,9 +132,11 @@ func (c *Operator) createOrUpdateRuleConfigMaps(ctx context.Context, p *monitori
 	// Simply deleting old ConfigMaps and creating new ones for now. Could be
 	// replaced by logic that only deletes obsolete ConfigMaps in the future.
 	for _, cm := range currentConfigMaps {
-		err := cClient.Delete(ctx, cm.Name, metav1.DeleteOptions{})
+		// Erase current ConfigMap
+		cm.Data = make(map[string]string)
+		_, err := cClient.Update(ctx, &cm, metav1.UpdateOptions{})
 		if err != nil {
-			return nil, fmt.Errorf("failed to delete current ConfigMap '%v': %w", cm.Name, err)
+			return nil, fmt.Errorf("failed to erase current ConfigMap '%v': %w", cm.Name, err)
 		}
 	}
 
@@ -142,11 +144,22 @@ func (c *Operator) createOrUpdateRuleConfigMaps(ctx context.Context, p *monitori
 		"namespace", p.Namespace,
 		"prometheus", p.Name,
 	)
-	for _, cm := range newConfigMaps {
-		_, err = cClient.Create(ctx, &cm, metav1.CreateOptions{})
-		if err != nil {
-			return nil, fmt.Errorf("failed to create new ConfigMap '%v': %w", cm.Name, err)
+	for i, cm := range newConfigMaps {
+		if i < len(currentConfigMaps) {
+			c.logger.Debug("updating PrometheusRule ConfigMap", "name", cm.Name, "namespace", cm.Namespace, "count", len(cm.Data))
+			_, err = cClient.Update(ctx, &cm, metav1.UpdateOptions{})
+			if err != nil {
+				return nil, fmt.Errorf("failed to update new ConfigMap '%v': %w", cm.Name, err)
+			}
+		} else {
+			c.logger.Debug("creating PrometheusRule ConfigMap", "name", cm.Name, "namespace", cm.Namespace, "count", len(cm.Data))
+			_, err = cClient.Create(ctx, &cm, metav1.CreateOptions{})
+			if err != nil {
+				return nil, fmt.Errorf("failed to create new ConfigMap '%v': %w", cm.Name, err)
+			}
 		}
+
+		c.metrics.SetActiveRulesConfigMaps(cm.Name, len(cm.Data))
 	}
 
 	return newConfigMapNames, nil
