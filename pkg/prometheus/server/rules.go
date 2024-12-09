@@ -144,21 +144,15 @@ func (c *Operator) createOrUpdateRuleConfigMaps(ctx context.Context, p *monitori
 		"namespace", p.Namespace,
 		"prometheus", p.Name,
 	)
-	for i, cm := range newConfigMaps {
-		if i < len(currentConfigMaps) {
-			c.logger.Debug("updating PrometheusRule ConfigMap", "name", cm.Name, "namespace", cm.Namespace, "count", len(cm.Data))
-			_, err = cClient.Update(ctx, &cm, metav1.UpdateOptions{})
-			if err != nil {
-				return nil, fmt.Errorf("failed to update new ConfigMap '%v': %w", cm.Name, err)
-			}
-		} else {
-			c.logger.Debug("creating PrometheusRule ConfigMap", "name", cm.Name, "namespace", cm.Namespace, "count", len(cm.Data))
+	for _, cm := range newConfigMaps {
+		c.logger.Debug("updating PrometheusRule ConfigMap", "name", cm.Name, "namespace", cm.Namespace, "count", len(cm.Data))
+		_, err = cClient.Update(ctx, &cm, metav1.UpdateOptions{})
+		if err != nil {
 			_, err = cClient.Create(ctx, &cm, metav1.CreateOptions{})
 			if err != nil {
 				return nil, fmt.Errorf("failed to create new ConfigMap '%v': %w", cm.Name, err)
 			}
 		}
-
 		c.metrics.SetActiveRulesConfigMaps(cm.Name, len(cm.Data))
 	}
 
